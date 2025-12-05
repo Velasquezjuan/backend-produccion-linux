@@ -99,40 +99,40 @@ exports.getDashboardData = async (req, res) => {
   try {
     const [centrosMasUsan] = await db.query(`
       SELECT destino, COUNT(*) AS total_viajes FROM (
-        SELECT punto_destino AS destino FROM VIAJE
+        SELECT punto_destino AS destino FROM viaje
         UNION ALL
-        SELECT punto_destino AS destino FROM VIAJE_MASIVO
+        SELECT punto_destino AS destino FROM viaje_masivo
       ) AS destinos_unificados
       GROUP BY destino ORDER BY total_viajes DESC LIMIT 5;
     `);
 
     const [vehiculosMasUsados] = await db.query(`
       SELECT v.marca, v.modelo, v.patente, COUNT(*) AS total_viajes FROM (
-        SELECT vehiculo_patente FROM VIAJE WHERE vehiculo_patente IS NOT NULL
+        SELECT vehiculo_patente FROM viaje WHERE vehiculo_patente IS NOT NULL
         UNION ALL
-        SELECT vehiculo_patente FROM VIAJE_MASIVO WHERE vehiculo_patente IS NOT NULL
+        SELECT vehiculo_patente FROM viaje_masivo WHERE vehiculo_patente IS NOT NULL
       ) AS patentes
-      JOIN VEHICULO v ON patentes.vehiculo_patente = v.patente
+      JOIN vehiculo v ON patentes.vehiculo_patente = v.patente
       GROUP BY v.patente, v.marca, v.modelo ORDER BY total_viajes DESC LIMIT 5;
     `);
 
     const [programaMayorUso] = await db.query(`
       SELECT p.nombre_programa, COUNT(*) AS total_viajes FROM (
-        SELECT PROGRAMA_id_programa AS id_programa FROM VIAJE
+        SELECT programa_id_programa AS id_programa FROM viaje
         UNION ALL
-        SELECT PROGRAMA_id_programa AS id_programa FROM VIAJE_MASIVO
+        SELECT programa_id_programa AS id_programa FROM viaje_masivo
       ) AS programas
-      JOIN PROGRAMA p ON programas.id_programa = p.id_programa
+      JOIN programa p ON programas.id_programa = p.id_programa
       GROUP BY p.nombre_programa ORDER BY total_viajes DESC LIMIT 5;
     `);
 
     const [usuarioMasSolicitudes] = await db.query(`
       SELECT u.nombre, u.apellido_paterno, COUNT(*) AS total_solicitudes FROM (
-        SELECT solicitante_rut_usuario AS rut FROM VIAJE
+        SELECT solicitante_rut_usuario AS rut FROM viaje
         UNION ALL
-        SELECT solicitante_rut_usuario AS rut FROM VIAJE_MASIVO
+        SELECT solicitante_rut_usuario AS rut FROM viaje_masivo
       ) AS solicitantes
-      JOIN USUARIO u ON solicitantes.rut = u.rut_usuario
+      JOIN usuario u ON solicitantes.rut = u.rut_usuario
       GROUP BY u.nombre, u.apellido_paterno ORDER BY total_solicitudes DESC LIMIT 5;
     `);
 
@@ -349,20 +349,20 @@ exports.exportarReporte = async (req, res) => {
           (SELECT v.id_viaje, v.fecha_viaje, v.hora_inicio, v.punto_destino, v.estado, v.vehiculo_patente,
             u.nombre as nombre_solicitante, p.nombre_programa, veh.nombre_conductor, co.nombre_proveedor,
             veh.necesita_reemplazo, veh.patente_reemplazo, 'Diario' as tipo_origen
-          FROM VIAJE v
-          LEFT JOIN USUARIO u ON v.solicitante_rut_usuario = u.rut_usuario
-          LEFT JOIN PROGRAMA p ON v.PROGRAMA_id_programa = p.id_programa
-          LEFT JOIN VEHICULO veh ON v.vehiculo_patente = veh.patente
-          LEFT JOIN CONTRATO co ON veh.patente = co.VEHICULO_patente)
+          FROM viaje v
+          LEFT JOIN usuario u ON v.solicitante_rut_usuario = u.rut_usuario
+          LEFT JOIN programa p ON v.programa_id_programa = p.id_programa
+          LEFT JOIN vehiculo veh ON v.vehiculo_patente = veh.patente
+          LEFT JOIN contrato co ON veh.patente = co.vehiculo_patente)
           UNION ALL
           (SELECT vm.id_viaje, vm.fecha_viaje, vm.hora_inicio, vm.punto_destino, vm.estado, vm.vehiculo_patente,
             u.nombre as nombre_solicitante, p.nombre_programa, veh.nombre_conductor, co.nombre_proveedor,
             veh.necesita_reemplazo, veh.patente_reemplazo, 'Masivo' as tipo_origen
-          FROM VIAJE_MASIVO vm
-          LEFT JOIN USUARIO u ON vm.solicitante_rut_usuario = u.rut_usuario
-          LEFT JOIN PROGRAMA p ON vm.PROGRAMA_id_programa = p.id_programa
-          LEFT JOIN VEHICULO veh ON vm.vehiculo_patente = veh.patente
-          LEFT JOIN CONTRATO co ON veh.patente = co.VEHICULO_patente)
+          FROM viaje_masivo vm
+          LEFT JOIN usuario u ON vm.solicitante_rut_usuario = u.rut_usuario
+          LEFT JOIN programa p ON vm.programa_id_programa = p.id_programa
+          LEFT JOIN vehiculo veh ON vm.vehiculo_patente = veh.patente
+          LEFT JOIN contrato co ON veh.patente = co.vehiculo_patente)
         `;
         
         let query = `SELECT * FROM (${baseQuery}) AS viajes_unificados WHERE 1=1`;
@@ -394,25 +394,25 @@ exports.exportarReporte = async (req, res) => {
                 c.nombre_proveedor, p.nombre_programa,
                 c.fecha_inicio as fecha_contrato,
                 last_trips.ultimo_viaje_real
-            FROM VEHICULO v
-            LEFT JOIN CONTRATO c ON v.patente = c.VEHICULO_patente
-            LEFT JOIN VEHICULO_has_PROGRAMA vhp ON v.patente = vhp.VEHICULO_patente
-            LEFT JOIN PROGRAMA p ON vhp.PROGRAMA_id_programa = p.id_programa
+            FROM vehiculo v
+            LEFT JOIN contrato c ON v.patente = c.vehiculo_patente
+            LEFT JOIN vehiculo_has_programa vhp ON v.patente = vhp.vehiculo_patente
+            LEFT JOIN programa p ON vhp.programa_id_programa = p.id_programa
             LEFT JOIN (
                 SELECT vehiculo_patente, MAX(fecha_viaje) as ultimo_viaje_real
                 FROM (
-                    SELECT vehiculo_patente, fecha_viaje FROM VIAJE
+                    SELECT vehiculo_patente, fecha_viaje FROM viaje
                     UNION ALL
-                    SELECT vehiculo_patente, fecha_viaje FROM VIAJE_MASIVO
+                    SELECT vehiculo_patente, fecha_viaje FROM viaje_masivo
                 ) t_union
                 GROUP BY vehiculo_patente
             ) last_trips ON v.patente = last_trips.vehiculo_patente
             WHERE v.activo = 'si' 
             AND v.patente NOT IN (
-                SELECT vehiculo_patente FROM VIAJE 
+                SELECT vehiculo_patente FROM viaje 
                 WHERE fecha_viaje BETWEEN ? AND ? AND vehiculo_patente IS NOT NULL
                 UNION
-                SELECT vehiculo_patente FROM VIAJE_MASIVO 
+                SELECT vehiculo_patente FROM viaje_masivo 
                 WHERE fecha_viaje BETWEEN ? AND ? AND vehiculo_patente IS NOT NULL
             )
         `;
@@ -734,25 +734,25 @@ exports.generarReporte = async (req, res) => {
                 'Sin Movimiento' as estado_reporte,
                 c.fecha_inicio as fecha_contrato,       
                 last_trips.ultimo_viaje_real            
-            FROM VEHICULO v
-            LEFT JOIN CONTRATO c ON v.patente = c.VEHICULO_patente
-            LEFT JOIN VEHICULO_has_PROGRAMA vhp ON v.patente = vhp.VEHICULO_patente
-            LEFT JOIN PROGRAMA p ON vhp.PROGRAMA_id_programa = p.id_programa
+            FROM vehiculo v
+            LEFT JOIN contrato c ON v.patente = c.vehiculo_patente
+            LEFT JOIN vehiculo_has_programa vhp ON v.patente = vhp.vehiculo_patente
+            LEFT JOIN programa p ON vhp.programa_id_programa = p.id_programa
             LEFT JOIN (
                 SELECT vehiculo_patente, MAX(fecha_viaje) as ultimo_viaje_real
                 FROM (
-                    SELECT vehiculo_patente, fecha_viaje FROM VIAJE
+                    SELECT vehiculo_patente, fecha_viaje FROM viaje
                     UNION ALL
-                    SELECT vehiculo_patente, fecha_viaje FROM VIAJE_MASIVO
+                    SELECT vehiculo_patente, fecha_viaje FROM viaje_masivo
                 ) t_union
                 GROUP BY vehiculo_patente
             ) last_trips ON v.patente = last_trips.vehiculo_patente
             WHERE v.activo = 'si' 
             AND v.patente NOT IN (
-                SELECT vehiculo_patente FROM VIAJE 
+                SELECT vehiculo_patente FROM viaje 
                 WHERE fecha_viaje BETWEEN ? AND ? AND vehiculo_patente IS NOT NULL
                 UNION
-                SELECT vehiculo_patente FROM VIAJE_MASIVO 
+                SELECT vehiculo_patente FROM viaje_masivo 
                 WHERE fecha_viaje BETWEEN ? AND ? AND vehiculo_patente IS NOT NULL
             )
         `;
@@ -792,21 +792,21 @@ exports.generarReporte = async (req, res) => {
             v.id_viaje, v.fecha_viaje, v.hora_inicio, v.punto_destino, v.estado, v.vehiculo_patente,
             u.nombre as nombre_solicitante, p.nombre_programa, veh.nombre_conductor, co.nombre_proveedor,
             'Diario' as tipo_origen
-          FROM VIAJE v
-          LEFT JOIN USUARIO u ON v.solicitante_rut_usuario = u.rut_usuario
-          LEFT JOIN PROGRAMA p ON v.PROGRAMA_id_programa = p.id_programa
-          LEFT JOIN VEHICULO veh ON v.vehiculo_patente = veh.patente
-          LEFT JOIN CONTRATO co ON veh.patente = co.VEHICULO_patente)
+          FROM viaje v
+          LEFT JOIN usuario u ON v.solicitante_rut_usuario = u.rut_usuario
+          LEFT JOIN programa p ON v.programa_id_programa = p.id_programa
+          LEFT JOIN vehiculo veh ON v.vehiculo_patente = veh.patente
+          LEFT JOIN contrato co ON veh.patente = co.vehiculo_patente)
           UNION ALL
           (SELECT 
             vm.id_viaje, vm.fecha_viaje, vm.hora_inicio, vm.punto_destino, vm.estado, vm.vehiculo_patente,
             u.nombre as nombre_solicitante, p.nombre_programa, veh.nombre_conductor, co.nombre_proveedor,
             'Masivo' as tipo_origen
-          FROM VIAJE_MASIVO vm
-          LEFT JOIN USUARIO u ON vm.solicitante_rut_usuario = u.rut_usuario
-          LEFT JOIN PROGRAMA p ON vm.PROGRAMA_id_programa = p.id_programa
-          LEFT JOIN VEHICULO veh ON vm.vehiculo_patente = veh.patente
-          LEFT JOIN CONTRATO co ON veh.patente = co.VEHICULO_patente)
+          FROM viaje_masivo vm
+          LEFT JOIN usuario u ON vm.solicitante_rut_usuario = u.rut_usuario
+          LEFT JOIN programa p ON vm.programa_id_programa = p.id_programa
+          LEFT JOIN vehiculo veh ON vm.vehiculo_patente = veh.patente
+          LEFT JOIN contrato co ON veh.patente = co.vehiculo_patente)
         `;
 
         let query = `SELECT * FROM (${baseQuery}) AS viajes_unificados WHERE 1=1`;
@@ -829,7 +829,7 @@ exports.generarReporte = async (req, res) => {
 
     let vehiculosPorProveedor = 0;
     if (proveedor) {
-      const [res] = await db.query(`SELECT COUNT(*) as total FROM CONTRATO WHERE nombre_proveedor LIKE ?`, [`%${proveedor}%`]);
+      const [res] = await db.query(`SELECT COUNT(*) as total FROM contrato WHERE nombre_proveedor LIKE ?`, [`%${proveedor}%`]);
       vehiculosPorProveedor = res[0].total;
     }
     
@@ -939,23 +939,23 @@ exports.exportarDashboard = async (req, res) => {
   try {
     const [centros] = await db.query(`
       SELECT destino, COUNT(*) AS total_viajes FROM (
-        SELECT punto_destino AS destino FROM VIAJE UNION ALL SELECT punto_destino FROM VIAJE_MASIVO
+        SELECT punto_destino AS destino FROM viaje UNION ALL SELECT punto_destino FROM viaje_masivo
       ) AS t GROUP BY destino ORDER BY total_viajes DESC LIMIT 5;
     `);
     const [vehiculos] = await db.query(`
       SELECT v.marca, v.modelo, v.patente, COUNT(*) AS total_viajes FROM (
-        SELECT vehiculo_patente FROM VIAJE WHERE vehiculo_patente IS NOT NULL UNION ALL SELECT vehiculo_patente FROM VIAJE_MASIVO WHERE vehiculo_patente IS NOT NULL
-      ) AS t JOIN VEHICULO v ON t.vehiculo_patente = v.patente GROUP BY v.patente, v.marca, v.modelo ORDER BY total_viajes DESC LIMIT 5;
+        SELECT vehiculo_patente FROM viaje WHERE vehiculo_patente IS NOT NULL UNION ALL SELECT vehiculo_patente FROM viaje_masivo WHERE vehiculo_patente IS NOT NULL
+      ) AS t JOIN vehiculo v ON t.vehiculo_patente = v.patente GROUP BY v.patente, v.marca, v.modelo ORDER BY total_viajes DESC LIMIT 5;
     `);
     const [programas] = await db.query(`
       SELECT p.nombre_programa, COUNT(*) AS total_viajes FROM (
-        SELECT PROGRAMA_id_programa AS id FROM VIAJE UNION ALL SELECT PROGRAMA_id_programa FROM VIAJE_MASIVO
-      ) AS t JOIN PROGRAMA p ON t.id = p.id_programa GROUP BY p.nombre_programa ORDER BY total_viajes DESC LIMIT 5;
+        SELECT programa_id_programa AS id FROM viaje UNION ALL SELECT programa_id_programa FROM viaje_masivo
+      ) AS t JOIN programa p ON t.id = p.id_programa GROUP BY p.nombre_programa ORDER BY total_viajes DESC LIMIT 5;
     `);
     const [usuarios] = await db.query(`
       SELECT u.nombre, u.apellido_paterno, COUNT(*) AS total_solicitudes FROM (
-        SELECT solicitante_rut_usuario AS rut FROM VIAJE UNION ALL SELECT solicitante_rut_usuario FROM VIAJE_MASIVO
-      ) AS t JOIN USUARIO u ON t.rut = u.rut_usuario GROUP BY u.nombre, u.apellido_paterno ORDER BY total_solicitudes DESC LIMIT 5;
+        SELECT solicitante_rut_usuario AS rut FROM viaje UNION ALL SELECT solicitante_rut_usuario FROM viaje_masivo
+      ) AS t JOIN usuario u ON t.rut = u.rut_usuario GROUP BY u.nombre, u.apellido_paterno ORDER BY total_solicitudes DESC LIMIT 5;
     `);
 
     const doc = new jsPDF();

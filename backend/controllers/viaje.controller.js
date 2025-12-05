@@ -17,20 +17,20 @@ try {
         COALESCE(tv_asignado.nombre_tipoVehiculo, tv_deseado.nombre_tipoVehiculo) as tipoVehiculo,
         veh.nombre_conductor as nombreConductor,
         'normal' as tipo_origen,
-        solicitante.ESTABLECIMIENTO_idEstablecimiento
-      FROM VIAJE v
-      JOIN USUARIO solicitante ON v.solicitante_rut_usuario = solicitante.rut_usuario
-      LEFT JOIN PROGRAMA prog ON v.PROGRAMA_id_programa = prog.id_programa
-      LEFT JOIN VEHICULO veh ON v.vehiculo_patente = veh.patente
-      LEFT JOIN TIPO_VEHICULO tv_asignado ON veh.TIPO_VEHICULO_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
-      LEFT JOIN TIPO_VEHICULO tv_deseado ON v.vehiculo_deseado = tv_deseado.id_tipoVehiculo
+        solicitante.establecimiento_idEstablecimiento
+      FROM viaje v
+      JOIN usuario solicitante ON v.solicitante_rut_usuario = solicitante.rut_usuario
+      LEFT JOIN programa prog ON v.programa_id_programa = prog.id_programa
+      LEFT JOIN vehiculo veh ON v.vehiculo_patente = veh.patente
+      LEFT JOIN tipo_vehiculo tv_asignado ON veh.tipo_vehiculo_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
+      LEFT JOIN tipo_vehiculo tv_deseado ON v.vehiculo_deseado = tv_deseado.id_tipoVehiculo
       WHERE 1=1
     `;
     const params = [];
 
     if (!esAdmin) {
         if (idEstablecimiento) {
-             query += ` AND solicitante.ESTABLECIMIENTO_idEstablecimiento = ?`;
+             query += ` AND solicitante.establecimiento_idEstablecimiento = ?`;
              params.push(idEstablecimiento);
         } else {             
              query += ` AND v.solicitante_rut_usuario = ?`;
@@ -67,9 +67,9 @@ exports.createViaje = async (req, res) => {
     }
 
     const query = `
-      INSERT INTO VIAJE (
+      INSERT INTO viaje (
         fecha_viaje, hora_inicio, punto_salida, punto_destino,
-        motivo, ocupantes, PROGRAMA_id_programa, solicitante_rut_usuario, responsable, necesita_carga, vehiculo_deseado
+        motivo, ocupantes, programa_id_programa, solicitante_rut_usuario, responsable, necesita_carga, vehiculo_deseado
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
     const [result] = await db.query(query, [
@@ -88,11 +88,11 @@ exports.createViaje = async (req, res) => {
           tv_asignado.nombre_tipoVehiculo,
           tv_deseado.nombre_tipoVehiculo
         ) as tipoVehiculo
-      FROM VIAJE v
-      JOIN USUARIO u ON v.solicitante_rut_usuario = u.rut_usuario
-      LEFT JOIN VEHICULO veh ON v.vehiculo_patente = veh.patente
-      LEFT JOIN TIPO_VEHICULO tv_asignado ON veh.TIPO_VEHICULO_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
-      LEFT JOIN TIPO_VEHICULO tv_deseado ON v.vehiculo_deseado = tv_deseado.id_tipoVehiculo
+      FROM viaje v
+      JOIN usuario u ON v.solicitante_rut_usuario = u.rut_usuario
+      LEFT JOIN vehiculo veh ON v.vehiculo_patente = veh.patente
+      LEFT JOIN tipo_vehiculo tv_asignado ON veh.tipo_vehiculo_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
+      LEFT JOIN tipo_vehiculo tv_deseado ON v.vehiculo_deseado = tv_deseado.id_tipoVehiculo
       WHERE v.id_viaje = ?
     `;
 
@@ -121,7 +121,7 @@ exports.updateEstadoViaje = async (req, res) => {
         const { estado, motivo_rechazo, motivo_reagendamiento, vehiculo_patente, fecha_viaje,
            hora_inicio, justificativo_no_realizado, motivo_rechazoReagendamiento } = req.body;
 
-        let query = 'UPDATE VIAJE SET estado = ?';
+        let query = 'UPDATE viaje SET estado = ?';
         const params = [estado];
 
         if (motivo_rechazo) {
@@ -172,7 +172,7 @@ exports.getBitacoraByVehiculo = async (req, res) => {
     try {
         const { patente } = req.params;
         const query = `
-            SELECT * FROM VIAJE 
+            SELECT * FROM viaje 
             WHERE vehiculo_patente = ? 
             ORDER BY fecha_viaje DESC;
         `;
@@ -196,11 +196,11 @@ exports.getViajesPorUsuario = async (req, res) => {
         u.nombre as nombre_solicitante, 
         u.apellido_paterno as apellido_solicitante,
         COALESCE(tv_asignado.nombre_tipoVehiculo, tv_deseado.nombre_tipoVehiculo ) as tipoVehiculo
-      FROM VIAJE v
-      JOIN USUARIO u ON v.solicitante_rut_usuario = u.rut_usuario
-      LEFT JOIN VEHICULO veh ON v.vehiculo_patente = veh.patente
-      LEFT JOIN TIPO_VEHICULO tv_asignado ON veh.TIPO_VEHICULO_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
-      LEFT JOIN TIPO_VEHICULO tv_deseado ON v.vehiculo_deseado = tv_deseado.id_tipoVehiculo
+      FROM viaje v
+      JOIN usuario u ON v.solicitante_rut_usuario = u.rut_usuario
+      LEFT JOIN vehiculo veh ON v.vehiculo_patente = veh.patente
+      LEFT JOIN tipo_vehiculo tv_asignado ON veh.tipo_vehiculo_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
+      LEFT JOIN tipo_vehiculo tv_deseado ON v.vehiculo_deseado = tv_deseado.id_tipoVehiculo
       WHERE u.nombre = ? 
       ORDER BY v.fecha_viaje DESC, v.hora_inicio DESC`; 
 
@@ -229,9 +229,9 @@ exports.createViajeMasivo = async (req, res) => {
     }
 
     const query = `
-      INSERT INTO VIAJE_MASIVO (
+      INSERT INTO viaje_masivo (
         fecha_viaje, hora_inicio, punto_salida, punto_destino,vehiculo_patente,
-        motivo, ocupantes, PROGRAMA_id_programa, solicitante_rut_usuario, responsable, necesita_carga, vehiculo_deseado, estado
+        motivo, ocupantes, programa_id_programa, solicitante_rut_usuario, responsable, necesita_carga, vehiculo_deseado, estado
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?);
     `;
     const [result] = await db.query(query, [
@@ -250,11 +250,11 @@ exports.createViajeMasivo = async (req, res) => {
           tv_asignado.nombre_tipoVehiculo,
           tv_deseado.nombre_tipoVehiculo
         ) as tipoVehiculo
-      FROM VIAJE_MASIVO v
-      JOIN USUARIO u ON v.solicitante_rut_usuario = u.rut_usuario
-      LEFT JOIN VEHICULO veh ON v.vehiculo_patente = veh.patente
-      LEFT JOIN TIPO_VEHICULO tv_asignado ON veh.TIPO_VEHICULO_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
-      LEFT JOIN TIPO_VEHICULO tv_deseado ON v.vehiculo_deseado = tv_deseado.id_tipoVehiculo
+      FROM viaje_masivo v
+      JOIN usuario u ON v.solicitante_rut_usuario = u.rut_usuario
+      LEFT JOIN vehiculo veh ON v.vehiculo_patente = veh.patente
+      LEFT JOIN tipo_vehiculo tv_asignado ON veh.tipo_vehiculo_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
+      LEFT JOIN tipo_vehiculo tv_deseado ON v.vehiculo_deseado = tv_deseado.id_tipoVehiculo
       WHERE v.id_viaje = ?
     `;
 
@@ -294,13 +294,13 @@ exports.getViajesMasivos = async (req, res) => {
         Wtv_deseado.nombre_tipoVehiculo) as tipoVehiculo,
         veh.nombre_conductor as nombreConductor,
         'masivo' as tipo_origen,
-        solicitante.ESTABLECIMIENTO_idEstablecimiento
-      FROM VIAJE_MASIVO vm
-      JOIN USUARIO solicitante ON vm.solicitante_rut_usuario = solicitante.rut_usuario
-      LEFT JOIN PROGRAMA prog ON vm.PROGRAMA_id_programa = prog.id_programa
-      LEFT JOIN VEHICULO veh ON vm.vehiculo_patente = veh.patente
-      LEFT JOIN TIPO_VEHICULO tv_asignado ON veh.TIPO_VEHICULO_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
-      LEFT JOIN TIPO_VEHICULO tv_deseado ON vm.vehiculo_deseado = tv_deseado.id_tipoVehiculo
+        solicitante.establecimiento_idEstablecimiento
+      FROM viaje_masivo vm
+      JOIN usuario solicitante ON vm.solicitante_rut_usuario = solicitante.rut_usuario
+      LEFT JOIN programa prog ON vm.programa_id_programa = prog.id_programa
+      LEFT JOIN vehiculo veh ON vm.vehiculo_patente = veh.patente
+      LEFT JOIN tipo_vehiculo tv_asignado ON veh.tipo_vehiculo_id_tipoVehiculo = tv_asignado.id_tipoVehiculo
+      LEFT JOIN tipo_vehiculo tv_deseado ON vm.vehiculo_deseado = tv_deseado.id_tipoVehiculo
       WHERE 1=1  
     `;
 
@@ -308,7 +308,7 @@ exports.getViajesMasivos = async (req, res) => {
 
     if (!esAdmin) {
         if (idEstablecimiento) {
-             query += ` AND solicitante.ESTABLECIMIENTO_idEstablecimiento = ?`;
+             query += ` AND solicitante.establecimiento_idEstablecimiento = ?`;
              params.push(idEstablecimiento);
         } else { 
              query += ` AND vm.solicitante_rut_usuario = ?`;

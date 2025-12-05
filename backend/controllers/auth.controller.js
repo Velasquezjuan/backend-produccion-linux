@@ -45,7 +45,7 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const contrasenaHasheada = await bcrypt.hash(contrasena, salt);
 
-    const query = `INSERT INTO USUARIO (
+    const query = `INSERT INTO usuario (
     rut_usuario,
     nombre,
     apellido_paterno,
@@ -54,7 +54,7 @@ exports.register = async (req, res) => {
     contrasena,
     rol,
     area,
-    ESTABLECIMIENTO_idEstablecimiento
+    establecimiento_idEstablecimiento
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?)`;
     
     
@@ -86,7 +86,7 @@ exports.login = async (req, res) => {
   try {
     const { correo, contrasena } = req.body;
     
-    const [usuarios] = await db.query('SELECT * FROM USUARIO WHERE correo = ?', [correo]);
+    const [usuarios] = await db.query('SELECT * FROM usuario WHERE correo = ?', [correo]);
     
     if (usuarios.length === 0) {
       return res.status(401).json({ message: 'Correo o contraseña incorrectos.' });
@@ -105,7 +105,7 @@ exports.login = async (req, res) => {
     if (esValida) {
       //  RESETEAR INTENTOS Y ENVIAR TOKEN 
       if (usuario.intentos_fallidos > 0) {
-        await db.query('UPDATE USUARIO SET intentos_fallidos = 0 WHERE rut_usuario = ?', [usuario.rut_usuario]);
+        await db.query('UPDATE usuario SET intentos_fallidos = 0 WHERE rut_usuario = ?', [usuario.rut_usuario]);
       }
       
       const token = jwt.sign(
@@ -125,7 +125,7 @@ exports.login = async (req, res) => {
       const nuevosIntentos = usuario.intentos_fallidos + 1;
       const MAX_INTENTOS = 5; // numero maximo de intentos para bloquear la cuenta, se puede cambiar desde aqui
       
-      let query = 'UPDATE USUARIO SET intentos_fallidos = ?';
+      let query = 'UPDATE usuario SET intentos_fallidos = ?';
       const params = [nuevosIntentos];
 
       if (nuevosIntentos >= MAX_INTENTOS) {
@@ -171,7 +171,7 @@ exports.login = async (req, res) => {
 // --- OBTENER TODOS LOS USUARIOS ---
 exports.getTodosLosUsuarios = async (req, res) => {
   try {
-    const query = 'SELECT * FROM USUARIO';
+    const query = 'SELECT * FROM usuario';
     const [usuarios] = await db.query(query);
     res.status(200).json(usuarios);
   } catch (error) {
@@ -184,7 +184,7 @@ exports.buscarUsuarioPorRut = async (req, res) => {
   try {
     const { rut } = req.body;
     
-    const [usuarios] = await db.query('SELECT correo, nombre FROM USUARIO WHERE rut_usuario = ?', [rut]);
+    const [usuarios] = await db.query('SELECT correo, nombre FROM usuario WHERE rut_usuario = ?', [rut]);
     
     if (usuarios.length === 0) {
       return res.status(404).json({ message: 'RUT no encontrado.' });

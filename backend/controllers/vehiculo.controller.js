@@ -3,7 +3,7 @@ const db = require('../db');
 // --- OBTENER TODOS LOS VEHÍCULOS ---
 exports.getVehiculos = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM VEHICULO');
+    const [rows] = await db.query('SELECT * FROM vehiculo');
     res.status(200).json(rows);
   } catch (error) {
     console.error('Error al obtener vehículos:', error);
@@ -34,9 +34,9 @@ exports.createVehiculo = async (req, res) => {
     const capacidadInt = capacidad ? 1 : 0;
 
     const sqlVehiculo = `
-      INSERT INTO VEHICULO (
+      INSERT INTO vehiculo (
         patente, marca, modelo, ano, capacidad, revision_tecnica, permiso_circulacion, seguro_obligatorio,
-        nombre_conductor, nombre_conductor_reemplazo, TIPO_VEHICULO_id_tipoVehiculo
+        nombre_conductor, nombre_conductor_reemplazo, tipo_vehiculo_id_tipoVehiculo
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?,?);
     `;
     await connection.query(sqlVehiculo, [
@@ -45,9 +45,9 @@ exports.createVehiculo = async (req, res) => {
     ]);
 
     const sqlContrato = `
-      INSERT INTO CONTRATO (
+      INSERT INTO contrato (
         id_contrato, rut_proveedor, nombre_proveedor, 
-        fecha_inicio, fecha_termino, horas_contratadas, VEHICULO_patente
+        fecha_inicio, fecha_termino, horas_contratadas, vehiculo_patente
       ) VALUES (?, ?, ?, ?, ?, ?, ?);
     `;
     await connection.query(sqlContrato, [
@@ -56,14 +56,14 @@ exports.createVehiculo = async (req, res) => {
     ]);
 
     if (programa && programa.length > 0) {
-      const sqlVehiculoPrograma = 'INSERT INTO VEHICULO_has_PROGRAMA (VEHICULO_patente, PROGRAMA_id_programa) VALUES ?';
+      const sqlVehiculoPrograma = 'INSERT INTO vehiculo_has_programa (vehiculo_patente, programa_id_programa) VALUES ?';
       const valoresVehiculoPrograma = programa.map(idPrograma => [patente, idPrograma]);
       await connection.query(sqlVehiculoPrograma, [valoresVehiculoPrograma]);
     }
 
     const todosLosEstablecimientos = [centro, centroSalud1, centroSalud2, centroEducacion, centroAtm].filter(id => id);
     if (todosLosEstablecimientos.length > 0) {
-        const sqlVehiculoEstablecimiento = 'INSERT INTO VEHICULO_has_ESTABLECIMIENTO (VEHICULO_patente, ESTABLECIMIENTO_idEstablecimiento) VALUES ?';
+        const sqlVehiculoEstablecimiento = 'INSERT INTO vehiculo_has_establecimiento (vehiculo_patente, establecimiento_idEstablecimiento) VALUES ?';
         const valoresVehiculoEstablecimiento = todosLosEstablecimientos.map(idEst => [patente, idEst]);
         await connection.query(sqlVehiculoEstablecimiento, [valoresVehiculoEstablecimiento]);
     }
@@ -94,8 +94,8 @@ exports.getVehiculos = async (req, res) => {
         v.capacidad,
         tv.nombre_tipoVehiculo as tipoVehiculo,
         v.nombre_conductor as nombreConductor 
-      FROM VEHICULO v
-      LEFT JOIN TIPO_VEHICULO tv ON v.TIPO_VEHICULO_id_tipoVehiculo = tv.id_tipoVehiculo;
+      FROM vehiculo v
+      LEFT JOIN tipo_vehiculo tv ON v.tipo_vehiculo_id_tipoVehiculo = tv.id_tipoVehiculo;
     `;
 
     const [vehiculos] = await db.query(query);
@@ -107,7 +107,7 @@ exports.getVehiculos = async (req, res) => {
   }
 };
 
-// --- OBTENER VEHICULOS POR PROGRAMA ---
+// --- OBTENER VEHICULOS POR programa ---
 exports.getVehiculosPorPrograma = async (req, res) => {
   try {
     const { id_programa } = req.params;
@@ -124,17 +124,17 @@ exports.getVehiculosPorPrograma = async (req, res) => {
         v.capacidad,
         tv.nombre_tipoVehiculo as tipoVehiculo,
         v.nombre_conductor as nombreConductor
-      FROM VEHICULO v
-      JOIN TIPO_VEHICULO tv ON v.TIPO_VEHICULO_id_tipoVehiculo = tv.id_tipoVehiculo
-      JOIN VEHICULO_has_PROGRAMA vhp ON v.patente = vhp.VEHICULO_patente
-      LEFT JOIN VEHICULO_has_ESTABLECIMIENTO vhe ON v.patente = vhe.VEHICULO_patente
-      WHERE vhp.PROGRAMA_id_programa = ? AND v.activo = 'si'
+      FROM vehiculo v
+      JOIN tipo_vehiculo tv ON v.tipo_vehiculo_id_tipoVehiculo = tv.id_tipoVehiculo
+      JOIN vehiculo_has_programa vhp ON v.patente = vhp.vehiculo_patente
+      LEFT JOIN vehiculo_has_establecimiento vhe ON v.patente = vhe.vehiculo_patente
+      WHERE vhp.programa_id_programa = ? AND v.activo = 'si'
     `;
     const params = [id_programa];
   
     if (!esAdmin) {
         if (idEstablecimiento) {
-            query += ` AND vhe.ESTABLECIMIENTO_idEstablecimiento = ?`;
+            query += ` AND vhe.establecimiento_idEstablecimiento = ?`;
             params.push(idEstablecimiento); 
         } else {
             return res.status(200).json([]); 
@@ -160,10 +160,10 @@ exports.getTiposVehiculoPorPrograma = async (req, res) => {
       SELECT DISTINCT 
         tv.id_tipoVehiculo as value, 
         tv.nombre_tipoVehiculo as label
-      FROM VEHICULO v
-      JOIN TIPO_VEHICULO tv ON v.TIPO_VEHICULO_id_tipoVehiculo = tv.id_tipoVehiculo
-      JOIN VEHICULO_has_PROGRAMA vhp ON v.patente = vhp.VEHICULO_patente
-      WHERE vhp.PROGRAMA_id_programa = ? AND v.activo = 'si';
+      FROM vehiculo v
+      JOIN tipo_vehiculo tv ON v.tipo_vehiculo_id_tipoVehiculo = tv.id_tipoVehiculo
+      JOIN vehiculo_has_programa vhp ON v.patente = vhp.vehiculo_patente
+      WHERE vhp.programa_id_programa = ? AND v.activo = 'si';
     `;
     
     const [tipos] = await db.query(query, [id_programa]);
@@ -184,9 +184,9 @@ exports.getProgramasPorVehiculo = async (req, res) => {
       SELECT DISTINCT
         p.id_programa as value,
         p.nombre_programa as label
-      FROM PROGRAMA p
-      JOIN VEHICULO_has_PROGRAMA vhp ON p.id_programa = vhp.PROGRAMA_id_programa
-      WHERE vhp.VEHICULO_patente = ?;
+      FROM programa p
+      JOIN vehiculo_has_programa vhp ON p.id_programa = vhp.programa_id_programa
+      WHERE vhp.vehiculo_patente = ?;
     `;
     
     const [programas] = await db.query(query, [patente]);
@@ -214,9 +214,9 @@ exports.getVehiculosMasivos = async (req, res) => {
         v.capacidad,
         tv.nombre_tipoVehiculo as tipoVehiculo,
         v.nombre_conductor as nombreConductor 
-      FROM VEHICULO v
-      JOIN TIPO_VEHICULO tv ON v.TIPO_VEHICULO_id_tipoVehiculo = tv.id_tipoVehiculo
-      LEFT JOIN VEHICULO_has_ESTABLECIMIENTO vhe ON v.patente = vhe.VEHICULO_patente
+      FROM vehiculo v
+      JOIN tipo_vehiculo tv ON v.tipo_vehiculo_id_tipoVehiculo = tv.id_tipoVehiculo
+      LEFT JOIN vehiculo_has_establecimiento vhe ON v.patente = vhe.vehiculo_patente
       WHERE v.activo = 'si'
     `;
 
@@ -224,7 +224,7 @@ exports.getVehiculosMasivos = async (req, res) => {
 
     if (!esAdmin) {
         if (idEstablecimiento) {
-            query += ` AND vhe.ESTABLECIMIENTO_idEstablecimiento = ?`;
+            query += ` AND vhe.establecimiento_idEstablecimiento = ?`;
             params.push(idEstablecimiento);
         } else {
             return res.status(200).json([]);

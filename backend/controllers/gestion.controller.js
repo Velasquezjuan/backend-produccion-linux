@@ -18,18 +18,18 @@ exports.getUsuarios = async (req, res) => {
         u.rol, 
         u.activo, 
         u.area,
-        u.ESTABLECIMIENTO_idEstablecimiento,
+        u.establecimiento_idEstablecimiento,
         u.bloqueado,
         e.nombre_establecimiento as establecimiento
-      FROM USUARIO u
-      LEFT JOIN ESTABLECIMIENTO e ON u.ESTABLECIMIENTO_idEstablecimiento = e.idEstablecimiento
+      FROM usuariov u
+      LEFT JOIN establecimiento e ON u.establecimiento_idEstablecimiento = e.idEstablecimiento
       WHERE 1=1
     `;
     const params = [];
 
     if (!esAdmin) {
         if (idEstablecimiento) {
-            query += ' AND u.ESTABLECIMIENTO_idEstablecimiento = ?';
+            query += ' AND u.establecimiento_idEstablecimiento = ?';
             params.push(idEstablecimiento);
         } else {
             return res.status(200).json([]);
@@ -52,13 +52,13 @@ exports.updateUsuario = async (req, res) => {
       } = req.body;
 
    
-    let query = 'UPDATE USUARIO SET ';
+    let query = 'UPDATE usuario SET ';
     const params = [];
     if (nombre !== undefined) { query += 'nombre = ?, '; params.push(nombre); }
     if (rol !== undefined) { query += 'rol = ?, '; params.push(rol); }
     if (activo !== undefined) { query += 'activo = ?, '; params.push(activo); }
     if (area !== undefined) { query += 'area = ?, '; params.push(area); }
-    if (ESTABLECIMIENTO_idEstablecimiento !== undefined) { query += 'ESTABLECIMIENTO_idEstablecimiento = ?, '; params.push(ESTABLECIMIENTO_idEstablecimiento); }
+    if (ESTABLECIMIENTO_idEstablecimiento !== undefined) { query += 'establecimiento_idEstablecimiento = ?, '; params.push(ESTABLECIMIENTO_idEstablecimiento); }
 
      if (params.length === 0) {
       return res.status(200).json({ message: 'Nada que actualizar.' });
@@ -88,11 +88,11 @@ exports.getVehiculosConConductores = async ( req, res ) => {
         v.nombre_conductor, v.nombre_conductor_reemplazo,
         tv.tipo_vehiculo,
         c.id_contrato, c.rut_proveedor, c.nombre_proveedor, c.fecha_inicio, c.fecha_termino
-      FROM VEHICULO v
-      JOIN TIPO_VEHICULO tv ON v.TIPO_VEHICULO_id_tipoVehiculo = tv.id_tipoVehiculo 
-      JOIN CONTRATO c ON v.patente = c.VEHICULO_patente
+      FROM vehiculo v
+      JOIN tipo_vehiculo tv ON v.tipo_vehiculo_id_tipoVehiculo = tv.id_tipoVehiculo 
+      JOIN contrato c ON v.patente = c.vehiculo_patente
       /* JOIN para filtrar por establecimiento */
-      LEFT JOIN VEHICULO_has_ESTABLECIMIENTO vhe ON v.patente = vhe.VEHICULO_patente
+      LEFT JOIN vehiculo_has_establecimiento vhe ON v.patente = vhe.vehiculo_patente
       WHERE 1=1
     `;
 
@@ -100,7 +100,7 @@ exports.getVehiculosConConductores = async ( req, res ) => {
 
     if (!esAdmin) {
         if (idEstablecimiento) {
-            query += ' AND vhe.ESTABLECIMIENTO_idEstablecimiento = ?';
+            query += ' AND vhe.establecimiento_idEstablecimiento = ?';
             params.push(idEstablecimiento);
         } else {
             return res.status(200).json([]);
@@ -145,11 +145,11 @@ exports.getVehiculosConDetalles = async (req, res) => {
         tv.nombre_tipoVehiculo as tipoVehiculo,
         c.nombre_proveedor as responsable,
         c.fecha_termino as fecha_contrato
-      FROM VEHICULO v
-      LEFT JOIN TIPO_VEHICULO tv ON v.TIPO_VEHICULO_id_tipoVehiculo = tv.id_tipoVehiculo 
-      LEFT JOIN CONTRATO c ON v.patente = c.VEHICULO_patente
+      FROM vehiculo v
+      LEFT JOIN tipo_vehiculotv ON v.tipo_vehiculo_id_tipoVehiculo = tv.id_tipoVehiculo 
+      LEFT JOIN contrato c ON v.patente = c.vehiculo_patente
       /* JOIN para filtrar por establecimiento */
-      LEFT JOIN VEHICULO_has_ESTABLECIMIENTO vhe ON v.patente = vhe.VEHICULO_patente
+      LEFT JOIN vehiculo_has_establecimiento vhe ON v.patente = vhe.vehiculo_patente
       WHERE 1=1
     `;
 
@@ -157,7 +157,7 @@ exports.getVehiculosConDetalles = async (req, res) => {
 
     if (!esAdmin) {
         if (idEstablecimiento) {
-            query += ' AND vhe.ESTABLECIMIENTO_idEstablecimiento = ?';
+            query += ' AND vhe.establecimiento_idEstablecimiento = ?';
             params.push(idEstablecimiento);
         } else {
             return res.status(200).json([]);
@@ -202,7 +202,7 @@ exports.updateVehiculo = async (req, res) => {
     }
  
 
-    let query = 'UPDATE VEHICULO SET ';
+    let query = 'UPDATE vehiculo SET ';
     const params = [];
     for (const key in fields) {
       if (fields.hasOwnProperty(key)) {
@@ -230,7 +230,7 @@ exports.updateVehiculo = async (req, res) => {
 exports.desbloquearUsuario = async (req, res) => {
   try {
     const { rut } = req.params;
-    await db.query("UPDATE USUARIO SET bloqueado = 'no', intentos_fallidos = 0 WHERE rut_usuario = ?", [rut]);
+    await db.query("UPDATE usuario SET bloqueado = 'no', intentos_fallidos = 0 WHERE rut_usuario = ?", [rut]);
     res.status(200).json({ message: 'Usuario desbloqueado con éxito.' });
   } catch (error) {
     console.error('Error al desbloquear usuario:', error);
@@ -240,7 +240,7 @@ exports.desbloquearUsuario = async (req, res) => {
 
 exports.getEstablecimientos = async (req, res) => {
   try {
-    const query = 'SELECT idEstablecimiento, nombre_establecimiento FROM ESTABLECIMIENTO';
+    const query = 'SELECT idEstablecimiento, nombre_establecimiento FROM establecimiento';
     const [rows] = await db.query(query);
     res.status(200).json(rows);
   } catch (error) {
