@@ -4,7 +4,7 @@
 
 export const environment = {
  production: false,
-  apiUrl: 'https://backend-programacion-rbgx.onrender.com'
+  apiUrl: 'https://backend-produccion-linux.onrender.com/'
 }
 /*
  * For easier debugging in development mode, you can import the following file
